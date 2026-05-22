@@ -22,7 +22,7 @@ def fetch(url):
         with sync_playwright() as p:
 
             browser = p.chromium.launch(
-                executable_path="/ms-playwright/chromium-1223/chrome-linux/chrome",
+                executable_path="/ms-playwright/chromium-1223/chrome-linux64/chrome",
                 headless=True,
                 args=[
                     "--no-sandbox",
