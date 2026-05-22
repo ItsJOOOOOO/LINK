@@ -1,18 +1,24 @@
 from flask import Flask, jsonify, request
 from playwright.sync_api import sync_playwright
 from urllib.parse import unquote
-import threading
+from multiprocessing import Process, Manager
 import uuid
 import time
 
 app = Flask(__name__)
 
-# تخزين النتائج مؤقتًا
-sessions = {}
+manager = Manager()
+
+# تخزين النتائج
+sessions = manager.dict()
 
 
+# -----------------------------------------
+# الصفحة الرئيسية
+# -----------------------------------------
 @app.route("/")
 def home():
+
     return jsonify({
         "status": "running"
     })
@@ -54,16 +60,17 @@ def run_browser(session_id, url):
 
                     decoded_url = unquote(response_url)
 
-                    print("Decoded Response:", decoded_url)
+                    print("Decoded:", decoded_url)
 
-                    # الرابط المطلوب
                     if "zamalkawy.fans/subscription/callback" in decoded_url:
 
                         found_callback = decoded_url
 
-                        sessions[session_id]["status"] = "completed"
-
-                        sessions[session_id]["callback"] = found_callback
+                        sessions[session_id] = {
+                            "status": "completed",
+                            "callback": found_callback,
+                            "error": None
+                        }
 
                 except Exception as e:
 
@@ -79,7 +86,7 @@ def run_browser(session_id, url):
                     timeout=120000
                 )
 
-                # استنى العملية تكمل بالخلفية
+                # سيبه شغال
                 page.wait_for_timeout(30000)
 
             except Exception as nav_error:
@@ -88,21 +95,26 @@ def run_browser(session_id, url):
 
             browser.close()
 
-        # لو مفيش callback
         if not found_callback:
 
-            sessions[session_id]["status"] = "not_found"
+            sessions[session_id] = {
+                "status": "not_found",
+                "callback": None,
+                "error": None
+            }
 
     except Exception as e:
 
-        sessions[session_id]["status"] = "error"
-
-        sessions[session_id]["error"] = str(e)
+        sessions[session_id] = {
+            "status": "error",
+            "callback": None,
+            "error": str(e)
+        }
 
 
 # -----------------------------------------
 # الريكوست الأول
-# يبدأ العملية بالخلفية ويرجع فورًا
+# يبدأ العملية بالخلفية
 # -----------------------------------------
 @app.route("/start")
 def start():
@@ -125,18 +137,16 @@ def start():
     sessions[session_id] = {
         "status": "processing",
         "callback": None,
-        "error": None,
-        "created_at": time.time()
+        "error": None
     }
 
-    # تشغيل بالخلفية
-    thread = threading.Thread(
+    # تشغيل Process بالخلفية
+    process = Process(
         target=run_browser,
         args=(session_id, url)
     )
 
-    thread.daemon = True
-    thread.start()
+    process.start()
 
     # يرجع فورًا
     return jsonify({
@@ -148,7 +158,7 @@ def start():
 
 # -----------------------------------------
 # الريكوست التاني
-# يجيب النتيجة المحفوظة
+# يجيب النتيجة
 # -----------------------------------------
 @app.route("/result/<session_id>")
 def result(session_id):
@@ -171,4 +181,8 @@ def result(session_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+
+    app.run(
+        host="0.0.0.0",
+        port=10000
+    )
