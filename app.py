@@ -25,14 +25,15 @@ def fetch(url):
                 headless=True,
                 args=[
                     "--no-sandbox",
-                    "--disable-dev-shm-usage"
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--single-process"
                 ]
             )
 
             page = browser.new_page()
 
             def handle_response(response):
-
                 nonlocal found_callback
 
                 response_url = response.url
@@ -43,13 +44,11 @@ def fetch(url):
             page.on("response", handle_response)
 
             try:
-
                 page.goto(
                     url,
                     wait_until="networkidle",
                     timeout=60000
                 )
-
             except Exception:
                 pass
 
