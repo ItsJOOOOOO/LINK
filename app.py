@@ -43,24 +43,34 @@ def fetch():
 
             page = browser.new_page()
 
+            page.set_default_navigation_timeout(30000)
+
             def handle_response(response):
 
                 nonlocal found_callback
 
                 response_url = response.url
 
+                print("Response:", response_url)
+
                 if "callback" in response_url:
                     found_callback = response_url
 
             page.on("response", handle_response)
 
-            page.goto(
-                url,
-                wait_until="load",
-                timeout=60000
-            )
+            try:
 
-            page.wait_for_timeout(8000)
+                page.goto(
+                    url,
+                    wait_until="domcontentloaded",
+                    timeout=30000
+                )
+
+                page.wait_for_timeout(3000)
+
+            except Exception as nav_error:
+
+                print("Navigation Error:", str(nav_error))
 
             browser.close()
 
