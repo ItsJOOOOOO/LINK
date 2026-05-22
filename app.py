@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from playwright.sync_api import sync_playwright
+import os
 
 app = Flask(__name__)
 
@@ -8,6 +9,15 @@ def home():
 
     return jsonify({
         "status": "running"
+    })
+
+
+@app.route("/test")
+def test():
+
+    return jsonify({
+        "playwright_browsers_path": os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+        "render": "working"
     })
 
 
@@ -23,8 +33,10 @@ def fetch(url):
 
         with sync_playwright() as p:
 
+            # مهم جدًا
             browser = p.chromium.launch(
-                headless=True
+                headless=True,
+                channel="chromium"
             )
 
             page = browser.new_page()
@@ -41,16 +53,11 @@ def fetch(url):
 
             page.on("response", handle_response)
 
-            try:
-
-                page.goto(
-                    url,
-                    wait_until="networkidle",
-                    timeout=60000
-                )
-
-            except:
-                pass
+            page.goto(
+                url,
+                wait_until="networkidle",
+                timeout=60000
+            )
 
             browser.close()
 
@@ -63,11 +70,3 @@ def fetch(url):
         return jsonify({
             "error": str(e)
         }), 500
-
-
-if __name__ == "__main__":
-
-    app.run(
-        host="0.0.0.0",
-        port=10000
-    )
