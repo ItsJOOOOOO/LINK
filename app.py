@@ -1,11 +1,13 @@
 from flask import Flask, jsonify, request
 from playwright.sync_api import sync_playwright
+from urllib.parse import unquote
 import threading
 import uuid
 import time
 
 app = Flask(__name__)
 
+# تخزين النتائج مؤقتًا
 sessions = {}
 
 
@@ -16,11 +18,14 @@ def home():
     })
 
 
+# -----------------------------
+# تشغيل Playwright في الخلفية
+# -----------------------------
 def run_browser(session_id, url):
 
-    found_callback = None
-
     try:
+
+        found_callback = None
 
         with sync_playwright() as p:
 
@@ -38,20 +43,31 @@ def run_browser(session_id, url):
 
             page.set_default_navigation_timeout(120000)
 
+            # مراقبة كل الـ responses
             def handle_response(response):
 
                 nonlocal found_callback
 
-                response_url = response.url
+                try:
 
-                print("Response:", response_url)
+                    response_url = response.url
 
-                if "callback" in response_url:
+                    decoded_url = unquote(response_url)
 
-                    found_callback = response_url
+                    print("Decoded:", decoded_url)
 
-                    sessions[session_id]["status"] = "completed"
-                    sessions[session_id]["callback"] = found_callback
+                    # هنا الرابط المطلوب
+                    if "zamalkawy.fans/subscription/callback" in decoded_url:
+
+                        found_callback = decoded_url
+
+                        sessions[session_id]["status"] = "completed"
+
+                        sessions[session_id]["callback"] = found_callback
+
+                except Exception as e:
+
+                    print("Response Error:", str(e))
 
             page.on("response", handle_response)
 
@@ -63,6 +79,7 @@ def run_browser(session_id, url):
                     timeout=120000
                 )
 
+                # سيبه شغال يستنى النتيجة
                 page.wait_for_timeout(30000)
 
             except Exception as nav_error:
@@ -71,6 +88,7 @@ def run_browser(session_id, url):
 
             browser.close()
 
+        # لو مفيش callback
         if not found_callback:
 
             sessions[session_id]["status"] = "not_found"
@@ -78,9 +96,13 @@ def run_browser(session_id, url):
     except Exception as e:
 
         sessions[session_id]["status"] = "error"
+
         sessions[session_id]["error"] = str(e)
 
 
+# ------------------------------------
+# الريكوست الأول: يبدأ العملية فقط
+# ------------------------------------
 @app.route("/start")
 def start():
 
@@ -102,9 +124,11 @@ def start():
     sessions[session_id] = {
         "status": "processing",
         "callback": None,
+        "error": None,
         "created_at": time.time()
     }
 
+    # تشغيل العملية في Thread بالخلفية
     thread = threading.Thread(
         target=run_browser,
         args=(session_id, url)
@@ -112,12 +136,16 @@ def start():
 
     thread.start()
 
+    # رجع بسرعة جدًا
     return jsonify({
         "success": True,
         "session_id": session_id
     })
 
 
+# ------------------------------------
+# الريكوست التاني: يجيب النتيجة
+# ------------------------------------
 @app.route("/result/<session_id>")
 def result(session_id):
 
@@ -133,8 +161,8 @@ def result(session_id):
     return jsonify({
         "success": True,
         "status": session["status"],
-        "callback": session.get("callback"),
-        "error": session.get("error")
+        "callback": session["callback"],
+        "error": session["error"]
     })
 
 
