@@ -26,7 +26,6 @@ def fetch():
         url = "https://" + url
 
     found_callback = None
-    responses = []
 
     try:
 
@@ -52,17 +51,9 @@ def fetch():
 
                 response_url = response.url
 
-                responses.append(response_url)
-
                 print("Response:", response_url)
 
-                if (
-                    "callback" in response_url
-                    or "success" in response_url
-                    or "payment" in response_url
-                    or "redirect" in response_url
-                    or "return" in response_url
-                ):
+                if "callback" in response_url:
 
                     found_callback = response_url
 
@@ -76,7 +67,7 @@ def fetch():
                     timeout=120000
                 )
 
-                # استنى كفاية للـ 3DS
+                # استنى شوية للـ 3DS
                 page.wait_for_timeout(20000)
 
             except Exception as nav_error:
@@ -87,8 +78,7 @@ def fetch():
 
         return jsonify({
             "success": True,
-            "callback": found_callback,
-            "responses": responses[-20:]
+            "callback": found_callback
         })
 
     except Exception as e:
