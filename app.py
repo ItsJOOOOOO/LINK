@@ -6,7 +6,9 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return {"status": "running"}
+    return jsonify({
+        "status": "running"
+    })
 
 
 @app.route("/fetch/<path:url>")
@@ -40,6 +42,7 @@ def fetch(url):
                 response_url = response.url
 
                 if "callback" in response_url and not found_callback:
+
                     found_callback = response_url
 
             page.on("response", handle_response)
@@ -52,18 +55,32 @@ def fetch(url):
                     timeout=60000
                 )
 
+                page.wait_for_timeout(5000)
+
             except Exception:
                 pass
 
             browser.close()
 
-        return jsonify({
-            "callback": found_callback
-        })
+        if found_callback:
+
+            return jsonify({
+                "success": True,
+                "callback": found_callback
+            })
+
+        else:
+
+            return jsonify({
+                "success": False,
+                "callback": None,
+                "message": "No callback found"
+            }), 404
 
     except Exception as e:
 
         return jsonify({
+            "success": False,
             "error": str(e)
         }), 500
 
