@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
@@ -11,8 +11,18 @@ def home():
     })
 
 
-@app.route("/fetch/<path:url>")
-def fetch(url):
+@app.route("/fetch", methods=["POST"])
+def fetch():
+
+    data = request.get_json()
+
+    if not data or "url" not in data:
+        return jsonify({
+            "success": False,
+            "error": "URL is required"
+        }), 400
+
+    url = data["url"]
 
     if not url.startswith("http"):
         url = "https://" + url
@@ -42,7 +52,6 @@ def fetch(url):
                 response_url = response.url
 
                 if "callback" in response_url and not found_callback:
-
                     found_callback = response_url
 
             page.on("response", handle_response)
@@ -62,20 +71,10 @@ def fetch(url):
 
             browser.close()
 
-        if found_callback:
-
-            return jsonify({
-                "success": True,
-                "callback": found_callback
-            })
-
-        else:
-
-            return jsonify({
-                "success": False,
-                "callback": None,
-                "message": "No callback found"
-            }), 404
+        return jsonify({
+            "success": True,
+            "callback": found_callback
+        })
 
     except Exception as e:
 
