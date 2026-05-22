@@ -18,9 +18,9 @@ def home():
     })
 
 
-# -----------------------------
-# تشغيل Playwright في الخلفية
-# -----------------------------
+# -----------------------------------------
+# تشغيل Playwright بالخلفية
+# -----------------------------------------
 def run_browser(session_id, url):
 
     try:
@@ -43,7 +43,7 @@ def run_browser(session_id, url):
 
             page.set_default_navigation_timeout(120000)
 
-            # مراقبة كل الـ responses
+            # مراقبة الـ responses
             def handle_response(response):
 
                 nonlocal found_callback
@@ -54,9 +54,9 @@ def run_browser(session_id, url):
 
                     decoded_url = unquote(response_url)
 
-                    print("Decoded:", decoded_url)
+                    print("Decoded Response:", decoded_url)
 
-                    # هنا الرابط المطلوب
+                    # الرابط المطلوب
                     if "zamalkawy.fans/subscription/callback" in decoded_url:
 
                         found_callback = decoded_url
@@ -79,7 +79,7 @@ def run_browser(session_id, url):
                     timeout=120000
                 )
 
-                # سيبه شغال يستنى النتيجة
+                # استنى العملية تكمل بالخلفية
                 page.wait_for_timeout(30000)
 
             except Exception as nav_error:
@@ -100,9 +100,10 @@ def run_browser(session_id, url):
         sessions[session_id]["error"] = str(e)
 
 
-# ------------------------------------
-# الريكوست الأول: يبدأ العملية فقط
-# ------------------------------------
+# -----------------------------------------
+# الريكوست الأول
+# يبدأ العملية بالخلفية ويرجع فورًا
+# -----------------------------------------
 @app.route("/start")
 def start():
 
@@ -128,24 +129,27 @@ def start():
         "created_at": time.time()
     }
 
-    # تشغيل العملية في Thread بالخلفية
+    # تشغيل بالخلفية
     thread = threading.Thread(
         target=run_browser,
         args=(session_id, url)
     )
 
+    thread.daemon = True
     thread.start()
 
-    # رجع بسرعة جدًا
+    # يرجع فورًا
     return jsonify({
         "success": True,
-        "session_id": session_id
+        "session_id": session_id,
+        "status": "processing"
     })
 
 
-# ------------------------------------
-# الريكوست التاني: يجيب النتيجة
-# ------------------------------------
+# -----------------------------------------
+# الريكوست التاني
+# يجيب النتيجة المحفوظة
+# -----------------------------------------
 @app.route("/result/<session_id>")
 def result(session_id):
 
