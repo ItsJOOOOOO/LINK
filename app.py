@@ -3,19 +3,17 @@ from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def home():
 
     return jsonify({
-        "status": "running",
-        "usage": "/fetch/<url>"
+        "status": "running"
     })
 
 
 @app.route('/fetch/<path:url>')
 def fetch(url):
 
-    # إضافة https لو مش موجود
     if not url.startswith("http"):
         url = "https://" + url
 
@@ -25,29 +23,23 @@ def fetch(url):
 
         with sync_playwright() as p:
 
-            # تشغيل Chromium الموجود على Render
             browser = p.chromium.launch(
                 headless=True,
-                executable_path="/usr/bin/chromium",
                 args=[
                     "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu"
+                    "--disable-dev-shm-usage"
                 ]
             )
 
             page = browser.new_page()
 
-            # مراقبة الـ responses
             def handle_response(response):
 
                 nonlocal found_callback
 
                 response_url = response.url
 
-                # لو فيه callback
                 if "callback" in response_url and not found_callback:
-
                     found_callback = response_url
 
             page.on("response", handle_response)
