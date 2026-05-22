@@ -1,8 +1,10 @@
 services:
   - type: web
-    name: callback-api
+    name: link-api
     env: python
+
     buildCommand: |
       pip install -r requirements.txt
-      playwright install chromium
+      python -m playwright install chromium
+
     startCommand: gunicorn app:app
