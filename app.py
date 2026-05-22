@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
+
 @app.route("/")
 def home():
     return {"status": "running"}
@@ -21,7 +22,6 @@ def fetch(url):
         with sync_playwright() as p:
 
             browser = p.chromium.launch(
-                executable_path="/ms-playwright/chromium-1223/chrome-linux/chrome",
                 headless=True,
                 args=[
                     "--no-sandbox",
@@ -50,7 +50,7 @@ def fetch(url):
                     timeout=60000
                 )
 
-            except:
+            except Exception:
                 pass
 
             browser.close()
