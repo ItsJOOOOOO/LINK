@@ -1,24 +1,11 @@
 from flask import Flask, jsonify
 from playwright.sync_api import sync_playwright
-import os
 
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-
-    return jsonify({
-        "status": "running"
-    })
-
-
-@app.route("/test")
-def test():
-
-    return jsonify({
-        "playwright_browsers_path": os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
-        "render": "working"
-    })
+    return {"status": "running"}
 
 
 @app.route("/fetch/<path:url>")
@@ -33,10 +20,13 @@ def fetch(url):
 
         with sync_playwright() as p:
 
-            # مهم جدًا
             browser = p.chromium.launch(
+                executable_path="/ms-playwright/chromium-1223/chrome-linux/chrome",
                 headless=True,
-                channel="chromium"
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage"
+                ]
             )
 
             page = browser.new_page()
@@ -48,16 +38,20 @@ def fetch(url):
                 response_url = response.url
 
                 if "callback" in response_url and not found_callback:
-
                     found_callback = response_url
 
             page.on("response", handle_response)
 
-            page.goto(
-                url,
-                wait_until="networkidle",
-                timeout=60000
-            )
+            try:
+
+                page.goto(
+                    url,
+                    wait_until="networkidle",
+                    timeout=60000
+                )
+
+            except:
+                pass
 
             browser.close()
 
@@ -70,3 +64,7 @@ def fetch(url):
         return jsonify({
             "error": str(e)
         }), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
