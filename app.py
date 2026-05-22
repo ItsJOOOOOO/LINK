@@ -11,18 +11,30 @@ def home():
     })
 
 
-@app.route("/fetch", methods=["POST"])
+@app.route("/fetch", methods=["GET", "POST"])
 def fetch():
 
-    data = request.get_json()
+    if request.method == "POST":
 
-    if not data or "url" not in data:
-        return jsonify({
-            "success": False,
-            "error": "URL is required"
-        }), 400
+        data = request.get_json(silent=True)
 
-    url = data["url"]
+        if not data or "url" not in data:
+            return jsonify({
+                "success": False,
+                "error": "URL is required"
+            }), 400
+
+        url = data["url"]
+
+    else:
+
+        url = request.args.get("url")
+
+        if not url:
+            return jsonify({
+                "success": False,
+                "error": "URL parameter is required"
+            }), 400
 
     if not url.startswith("http"):
         url = "https://" + url
