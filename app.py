@@ -11,30 +11,16 @@ def home():
     })
 
 
-@app.route("/fetch", methods=["GET", "POST"])
+@app.route("/fetch")
 def fetch():
 
-    if request.method == "POST":
+    url = request.args.get("url")
 
-        data = request.get_json(silent=True)
-
-        if not data or "url" not in data:
-            return jsonify({
-                "success": False,
-                "error": "URL is required"
-            }), 400
-
-        url = data["url"]
-
-    else:
-
-        url = request.args.get("url")
-
-        if not url:
-            return jsonify({
-                "success": False,
-                "error": "URL parameter is required"
-            }), 400
+    if not url:
+        return jsonify({
+            "success": False,
+            "error": "Missing url parameter"
+        }), 400
 
     if not url.startswith("http"):
         url = "https://" + url
@@ -63,23 +49,18 @@ def fetch():
 
                 response_url = response.url
 
-                if "callback" in response_url and not found_callback:
+                if "callback" in response_url:
                     found_callback = response_url
 
             page.on("response", handle_response)
 
-            try:
+            page.goto(
+                url,
+                wait_until="load",
+                timeout=60000
+            )
 
-                page.goto(
-                    url,
-                    wait_until="networkidle",
-                    timeout=60000
-                )
-
-                page.wait_for_timeout(5000)
-
-            except Exception:
-                pass
+            page.wait_for_timeout(8000)
 
             browser.close()
 
