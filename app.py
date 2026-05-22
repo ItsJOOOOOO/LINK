@@ -11,7 +11,7 @@ def home():
     })
 
 
-@app.route('/fetch/<path:url>')
+@app.route("/fetch/<path:url>")
 def fetch(url):
 
     if not url.startswith("http"):
@@ -24,11 +24,7 @@ def fetch(url):
         with sync_playwright() as p:
 
             browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage"
-                ]
+                headless=True
             )
 
             page = browser.new_page()
@@ -40,6 +36,7 @@ def fetch(url):
                 response_url = response.url
 
                 if "callback" in response_url and not found_callback:
+
                     found_callback = response_url
 
             page.on("response", handle_response)
