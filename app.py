@@ -26,6 +26,7 @@ def fetch():
         url = "https://" + url
 
     found_callback = None
+    responses = []
 
     try:
 
@@ -43,7 +44,7 @@ def fetch():
 
             page = browser.new_page()
 
-            page.set_default_navigation_timeout(30000)
+            page.set_default_navigation_timeout(120000)
 
             def handle_response(response):
 
@@ -51,9 +52,18 @@ def fetch():
 
                 response_url = response.url
 
+                responses.append(response_url)
+
                 print("Response:", response_url)
 
-                if "callback" in response_url:
+                if (
+                    "callback" in response_url
+                    or "success" in response_url
+                    or "payment" in response_url
+                    or "redirect" in response_url
+                    or "return" in response_url
+                ):
+
                     found_callback = response_url
 
             page.on("response", handle_response)
@@ -63,10 +73,11 @@ def fetch():
                 page.goto(
                     url,
                     wait_until="domcontentloaded",
-                    timeout=30000
+                    timeout=120000
                 )
 
-                page.wait_for_timeout(3000)
+                # استنى كفاية للـ 3DS
+                page.wait_for_timeout(20000)
 
             except Exception as nav_error:
 
@@ -76,7 +87,8 @@ def fetch():
 
         return jsonify({
             "success": True,
-            "callback": found_callback
+            "callback": found_callback,
+            "responses": responses[-20:]
         })
 
     except Exception as e:
