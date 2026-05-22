@@ -22,6 +22,7 @@ def fetch(url):
         with sync_playwright() as p:
 
             browser = p.chromium.launch(
+                executable_path="/ms-playwright/chromium-1223/chrome-linux/chrome",
                 headless=True,
                 args=[
                     "--no-sandbox",
@@ -33,6 +34,7 @@ def fetch(url):
             page = browser.new_page()
 
             def handle_response(response):
+
                 nonlocal found_callback
 
                 response_url = response.url
@@ -43,11 +45,13 @@ def fetch(url):
             page.on("response", handle_response)
 
             try:
+
                 page.goto(
                     url,
                     wait_until="networkidle",
                     timeout=60000
                 )
+
             except Exception:
                 pass
 
